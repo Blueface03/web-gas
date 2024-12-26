@@ -7,51 +7,48 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 20px;
             text-align: center;
-            margin: 0;
-            padding: 0;
             background-color: #f9f9f9;
         }
         h1 {
             color: #333;
         }
-        .status {
-            margin: 20px 0;
+        p {
             font-size: 18px;
             color: #555;
         }
-        button {
-            background-color: #ff4c4c;
-            color: white;
-            border: none;
+        .button {
             padding: 10px 20px;
+            margin: 20px 0;
             font-size: 16px;
+            border: none;
             border-radius: 5px;
             cursor: pointer;
+            background-color: #ff4c4c;
+            color: white;
         }
-        button:hover {
+        .button:hover {
             background-color: #e63939;
         }
     </style>
 </head>
 <body>
     <h1>Gas Detector Control</h1>
-    <div class="status">
-        <p>Gas Status: <span id="gas-status">Loading...</span></p>
-        <p>Gas Percentage: <span id="gas-percentage">Loading...</span>%</p>
-    </div>
-    <button id="buzzer-off-button">Turn Off Buzzer</button>
+    <p>Gas Status: <span id="gas-status">Loading...</span></p>
+    <p>Gas Percentage: <span id="gas-percentage">Loading...</span>%</p>
+    <button id="buzzer-off-button" class="button">Turn Off Buzzer</button>
 
     <script>
         const authToken = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L"; // Ganti dengan Blynk Auth Token Anda
         const apiUrl = "https://blynk.cloud/external/api";
 
-        // Elemen DOM untuk kontrol buzzer
+        // Elemen DOM
         const gasStatus = document.getElementById('gas-status');
         const gasPercentage = document.getElementById('gas-percentage');
-        const buzzerOffButton = document.getElementById('buzzer-off-button'); // Tombol untuk mematikan buzzer
+        const buzzerOffButton = document.getElementById('buzzer-off-button');
 
-        // Update status gas dan buzzer dari Blynk
+        // Update status gas dari Blynk
         function updateGasStatus() {
             fetch(`${apiUrl}/get?token=${authToken}&V1`)
                 .then(response => response.text())
