@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gas Detector Control</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    .button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+    .button.on {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .button.off {
+      background-color: #f44336;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Gas Detector Control</h1>
+  <div>
+    <p>Gas Status: <span id="gas-status">Loading...</span></p>
+    <p>Gas Percentage: <span id="gas-percentage">Loading...</span>%</p>
+  </div>
+
+  <div>
+    <button id="buzzer-off" class="button off">Turn Off Buzzer</button>
+  </div>
+
+  <script>
+    const BLYNK_AUTH_TOKEN = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L";
+    const API_URL = `http://blynk.cloud/external/api`;
+
+    const buzzerOffButton = document.getElementById('buzzer-off');
+    const gasStatusElement = document.getElementById('gas-status');
+    const gasPercentageElement = document.getElementById('gas-percentage');
+
+    // Function to update gas status from Blynk
+    async function updateGasStatus() {
+      try {
+        const statusResponse = await axios.get(`${API_URL}/get?token=${BLYNK_AUTH_TOKEN}&pin=V1`);
+        const percentageResponse = await axios.get(`${API_URL}/get?token=${BLYNK_AUTH_TOKEN}&pin=V0`);
+
+        gasStatusElement.textContent = statusResponse.data;
+        gasPercentageElement.textContent = percentageResponse.data;
+      } catch (error) {
+        console.error("Error fetching gas status:", error);
+      }
+    }
+
+    // Function to turn off buzzer
+    async function turnOffBuzzer() {
+      try {
+        await axios.get(`${API_URL}/update?token=${BLYNK_AUTH_TOKEN}&pin=V3&value=0`);
+        alert("Buzzer turned off successfully!");
+      } catch (error) {
+        console.error("Error turning off buzzer:", error);
+        alert("Failed to turn off buzzer.");
+      }
+    }
+
+    buzzerOffButton.addEventListener('click', turnOffBuzzer);
+
+    // Update gas status periodically
+    setInterval(updateGasStatus, 5000); // Update every 5 seconds
+
+    // Initial update
+    updateGasStatus();
+  </script>
+
+</body>
+</html>
