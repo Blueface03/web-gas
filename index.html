@@ -51,18 +51,32 @@
         // Update status gas dari Blynk
         function updateGasStatus() {
             fetch(`${apiUrl}/get?token=${authToken}&V1`)
-                .then(response => response.text())
+                .then(response => response.json())
                 .then(data => {
-                    gasStatus.textContent = data; // AMAN/WASPADA/BAHAYA
+                    if (data.error) {
+                        gasStatus.textContent = "Error: " + data.error.message;
+                    } else {
+                        gasStatus.textContent = data; // AMAN/WASPADA/BAHAYA
+                    }
                 })
-                .catch(error => console.error("Error fetching gas status:", error));
+                .catch(error => {
+                    gasStatus.textContent = "Error fetching gas status";
+                    console.error("Error fetching gas status:", error);
+                });
 
             fetch(`${apiUrl}/get?token=${authToken}&V0`)
-                .then(response => response.text())
+                .then(response => response.json())
                 .then(data => {
-                    gasPercentage.textContent = data; // Persentase gas
+                    if (data.error) {
+                        gasPercentage.textContent = "Error: " + data.error.message;
+                    } else {
+                        gasPercentage.textContent = data + "%"; // Persentase gas
+                    }
                 })
-                .catch(error => console.error("Error fetching gas percentage:", error));
+                .catch(error => {
+                    gasPercentage.textContent = "Error fetching gas percentage";
+                    console.error("Error fetching gas percentage:", error);
+                });
         }
 
         // Event listener untuk tombol mematikan buzzer
@@ -80,7 +94,7 @@
         }
 
         updateAllStatus();
-        setInterval(updateAllStatus, 5000); // Perbarui status setiap 5 detik
+        setInterval(updateAllStatus, 10000); // Perbarui status setiap 10 detik
     </script>
 </body>
 </html>
