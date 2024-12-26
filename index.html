@@ -43,38 +43,44 @@
         const authToken = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L"; // Ganti dengan Blynk Auth Token Anda
         const apiUrl = "https://blynk.cloud/external/api";
 
+        // Ambang batas gas
+        const AMAN = 20;         // Di bawah 20% dianggap aman
+        const WASPADA = 40;      // 20-40% perlu waspada
+        const BAHAYA = 60;       // Di atas 40% dianggap bahaya
+
         // Elemen DOM
         const gasStatus = document.getElementById('gas-status');
         const gasPercentage = document.getElementById('gas-percentage');
         const buzzerOffButton = document.getElementById('buzzer-off-button');
 
+        // Fungsi untuk menentukan status gas
+        function determineGasStatus(percentage) {
+            if (percentage <= AMAN) {
+                return "AMAN";
+            } else if (percentage <= WASPADA) {
+                return "WASPADA";
+            } else {
+                return "BAHAYA";
+            }
+        }
+
         // Update status gas dari Blynk
         function updateGasStatus() {
-            fetch(`${apiUrl}/get?token=${authToken}&V1`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        gasStatus.textContent = "Error: " + data.error.message;
-                    } else {
-                        gasStatus.textContent = data; // AMAN/WASPADA/BAHAYA
-                    }
-                })
-                .catch(error => {
-                    gasStatus.textContent = "Error fetching gas status";
-                    console.error("Error fetching gas status:", error);
-                });
-
             fetch(`${apiUrl}/get?token=${authToken}&V0`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
                         gasPercentage.textContent = "Error: " + data.error.message;
+                        gasStatus.textContent = "Error";
                     } else {
-                        gasPercentage.textContent = data + "%"; // Persentase gas
+                        const percentage = parseInt(data, 10);
+                        gasPercentage.textContent = percentage + "%";
+                        gasStatus.textContent = determineGasStatus(percentage);
                     }
                 })
                 .catch(error => {
                     gasPercentage.textContent = "Error fetching gas percentage";
+                    gasStatus.textContent = "Error fetching gas status";
                     console.error("Error fetching gas percentage:", error);
                 });
         }
