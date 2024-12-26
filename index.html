@@ -43,39 +43,28 @@
         const authToken = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L"; // Ganti dengan Blynk Auth Token Anda
         const apiUrl = "https://blynk.cloud/external/api";
 
-        // Ambang batas gas
-        const AMAN = 20;         // Di bawah 20% dianggap aman
-        const WASPADA = 40;      // 20-40% perlu waspada
-        const BAHAYA = 60;       // Di atas 40% dianggap bahaya
-
         // Elemen DOM
         const gasStatus = document.getElementById('gas-status');
         const gasPercentage = document.getElementById('gas-percentage');
         const buzzerOffButton = document.getElementById('buzzer-off-button');
 
-        // Fungsi untuk menentukan status gas
-        function determineGasStatus(percentage) {
-            if (percentage <= AMAN) {
-                return "AMAN";
-            } else if (percentage <= WASPADA) {
-                return "WASPADA";
-            } else {
-                return "BAHAYA";
-            }
-        }
-
         // Update status gas dari Blynk menggunakan batch API
         function updateGasStatus() {
-            fetch(`${apiUrl}/get?token=${authToken}&V1,V0`)
-                .then(response => response.json())
+            fetch(`${apiUrl}/get?token=${authToken}&V0,V1`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     console.log("Blynk API Response:", data);
                     if (data.error) {
                         gasStatus.textContent = "Error: " + data.error.message;
                         gasPercentage.textContent = "Error: " + data.error.message + "%";
                     } else {
-                        const status = data[0]; // Data pertama adalah V1 (status gas)
-                        const percentage = parseInt(data[1], 10); // Data kedua adalah V0 (persentase gas)
+                        const percentage = parseInt(data[0], 10); // Data pertama adalah V0 (persentase gas)
+                        const status = data[1]; // Data kedua adalah V1 (status gas)
 
                         gasStatus.textContent = status || "Unknown";
                         gasPercentage.textContent = percentage ? percentage + "%" : "Unknown%";
@@ -91,7 +80,10 @@
         // Event listener untuk tombol mematikan buzzer
         buzzerOffButton.addEventListener('click', () => {
             fetch(`${apiUrl}/update?token=${authToken}&V3=0`)
-                .then(() => {
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
                     console.log("Buzzer turned off manually.");
                 })
                 .catch(error => console.error("Error turning off buzzer:", error));
