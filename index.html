@@ -64,24 +64,27 @@
             }
         }
 
-        // Update status gas dari Blynk
+        // Update status gas dari Blynk menggunakan batch API
         function updateGasStatus() {
-            fetch(`${apiUrl}/get?token=${authToken}&V0`)
+            fetch(`${apiUrl}/get?token=${authToken}&V1,V0`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Blynk API Response:", data);
                     if (data.error) {
-                        gasPercentage.textContent = "Error: " + data.error.message;
-                        gasStatus.textContent = "Error";
+                        gasStatus.textContent = "Error: " + data.error.message;
+                        gasPercentage.textContent = "Error: " + data.error.message + "%";
                     } else {
-                        const percentage = parseInt(data, 10);
-                        gasPercentage.textContent = percentage + "%";
-                        gasStatus.textContent = determineGasStatus(percentage);
+                        const status = data[0]; // Data pertama adalah V1 (status gas)
+                        const percentage = parseInt(data[1], 10); // Data kedua adalah V0 (persentase gas)
+
+                        gasStatus.textContent = status || "Unknown";
+                        gasPercentage.textContent = percentage ? percentage + "%" : "Unknown%";
                     }
                 })
                 .catch(error => {
-                    gasPercentage.textContent = "Error fetching gas percentage";
                     gasStatus.textContent = "Error fetching gas status";
-                    console.error("Error fetching gas percentage:", error);
+                    gasPercentage.textContent = "Error fetching gas percentage";
+                    console.error("Error fetching gas data:", error);
                 });
         }
 
@@ -100,7 +103,7 @@
         }
 
         updateAllStatus();
-        setInterval(updateAllStatus, 10000); // Perbarui status setiap 10 detik
+        setInterval(updateAllStatus, 30000); // Perbarui status setiap 30 detik
     </script>
 </body>
 </html>
