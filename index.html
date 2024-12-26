@@ -1,64 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gas Detector Control</title>
-  <script>
-    const authToken = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L"; // Ganti dengan Blynk Auth Token Anda
-    const apiUrl = "https://blynk.cloud/external/api";
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Detector Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        .status {
+            margin: 20px 0;
+            font-size: 18px;
+            color: #555;
+        }
+        button {
+            background-color: #ff4c4c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e63939;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gas Detector Control</h1>
+    <div class="status">
+        <p>Gas Status: <span id="gas-status">Loading...</span></p>
+        <p>Gas Percentage: <span id="gas-percentage">Loading...</span>%</p>
+    </div>
+    <button id="buzzer-off-button">Turn Off Buzzer</button>
 
-    // Elemen DOM untuk kontrol buzzer
-    const gasStatus = document.getElementById('gas-status');
-    const buzzerSwitch = document.getElementById('buzzer-switch');
-    const buzzerOffButton = document.getElementById('buzzer-off-button'); // Tombol untuk mematikan buzzer
+    <script>
+        const authToken = "2aroxWWyv1HW9nqksUOzkZIJh9wuiw0L"; // Ganti dengan Blynk Auth Token Anda
+        const apiUrl = "https://blynk.cloud/external/api";
 
-    // Update status gas dan buzzer dari Blynk
-    function updateGasStatus() {
-        fetch(`${apiUrl}/get?token=${authToken}&V1`)
-            .then(response => response.text())
-            .then(data => {
-                gasStatus.textContent = data; // AMAN/WASPADA/BAHAYA
-            })
-            .catch(error => console.error("Error fetching gas status:", error));
+        // Elemen DOM untuk kontrol buzzer
+        const gasStatus = document.getElementById('gas-status');
+        const gasPercentage = document.getElementById('gas-percentage');
+        const buzzerOffButton = document.getElementById('buzzer-off-button'); // Tombol untuk mematikan buzzer
 
-        fetch(`${apiUrl}/get?token=${authToken}&V3`)
-            .then(response => response.text())
-            .then(data => {
-                buzzerSwitch.checked = data === "1"; // ON jika 1
-            })
-            .catch(error => console.error("Error fetching buzzer status:", error));
-    }
+        // Update status gas dan buzzer dari Blynk
+        function updateGasStatus() {
+            fetch(`${apiUrl}/get?token=${authToken}&V1`)
+                .then(response => response.text())
+                .then(data => {
+                    gasStatus.textContent = data; // AMAN/WASPADA/BAHAYA
+                })
+                .catch(error => console.error("Error fetching gas status:", error));
 
-    // Event listener untuk switch buzzer
-    buzzerSwitch.addEventListener('change', () => {
-        const switchState = buzzerSwitch.checked ? 1 : 0;
-        fetch(`${apiUrl}/update?token=${authToken}&V3=${switchState}`)
-            .then(() => {
-                console.log(`Buzzer state updated to: ${switchState}`);
-            })
-            .catch(error => console.error("Error updating buzzer state:", error));
-    });
+            fetch(`${apiUrl}/get?token=${authToken}&V0`)
+                .then(response => response.text())
+                .then(data => {
+                    gasPercentage.textContent = data; // Persentase gas
+                })
+                .catch(error => console.error("Error fetching gas percentage:", error));
+        }
 
-    // Event listener untuk tombol mematikan buzzer
-    buzzerOffButton.addEventListener('click', () => {
-        fetch(`${apiUrl}/update?token=${authToken}&V3=0`)
-            .then(() => {
-                console.log("Buzzer turned off manually.");
-                buzzerSwitch.checked = false; // Pastikan switch diperbarui
-            })
-            .catch(error => console.error("Error turning off buzzer:", error));
-    });
+        // Event listener untuk tombol mematikan buzzer
+        buzzerOffButton.addEventListener('click', () => {
+            fetch(`${apiUrl}/update?token=${authToken}&V3=0`)
+                .then(() => {
+                    console.log("Buzzer turned off manually.");
+                })
+                .catch(error => console.error("Error turning off buzzer:", error));
+        });
 
-    // Perbarui status saat halaman dimuat
-    function updateAllStatus() {
-        updateGasStatus();
-    }
+        // Perbarui status saat halaman dimuat
+        function updateAllStatus() {
+            updateGasStatus();
+        }
 
-    updateAllStatus();
-    setInterval(updateAllStatus, 5000); // Perbarui status setiap 5 detik
-</script>
-
-
+        updateAllStatus();
+        setInterval(updateAllStatus, 5000); // Perbarui status setiap 5 detik
+    </script>
 </body>
 </html>
