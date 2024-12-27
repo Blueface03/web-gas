@@ -19,7 +19,7 @@
 <body>
   <h1>Gas Detector</h1>
   <p>Status Koneksi: <span id="connectionStatus">Tidak terhubung</span></p>
-  <p>Gas Level: <span id="gasLevel">Loading...</span> %</p>
+  <p>Gas Level: <span id="gasLevel">Loading...</span></p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
   <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
   <button id="offButton" onclick="turnOffBuzzer()" disabled>Matikan Buzzer</button>
@@ -64,7 +64,7 @@
 
     function onMessageArrived(message) {
       const data = JSON.parse(message.payloadString);
-      document.getElementById("gasLevel").innerHTML = (data.gasLevel || 0) + " %";
+      document.getElementById("gasLevel").innerHTML = data.gasLevel + " %"; // Hanya tambahkan % jika tidak ada dalam data
       const gasStatusElement = document.getElementById("gasStatus");
       gasStatusElement.innerHTML = data.gasStatus || "AMAN";
 
@@ -78,10 +78,17 @@
     }
 
     function turnOffBuzzer() {
+      if (!client.isConnected()) {
+        console.error("MQTT tidak terhubung.");
+        document.getElementById("error").innerHTML = "MQTT tidak terhubung. Tidak dapat mengirim pesan.";
+        return;
+      }
+
       buzzerActive = false;
       document.getElementById("offButton").disabled = true;
       const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
-      client.publish(topic, offMessage);
+      client.publish(topic, offMessage); // Kirim pesan untuk mematikan buzzer
+      console.log("Pesan untuk mematikan buzzer dikirim.");
     }
   </script>
 </body>
