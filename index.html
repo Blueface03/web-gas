@@ -1,57 +1,69 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Gas Detector</title>
-    <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"
-    type="text/javascript"
-  ></script>
-    <style>
-      html {
-        font-family: Helvetica;
-        text-align: center;
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gas Detector</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
+  <style>
+    html {
+      font-family: Helvetica;
+      text-align: center;
+    }
+    #gasStatus {
+      font-size: 2rem;
+      font-weight: bold;
+      color: green;
+    }
+    .critical {
+      color: red;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0% {
+        opacity: 0;
       }
-      #gasStatus {
-        font-size: 2rem;
-        font-weight: bold;
-        color: green;
+      100% {
+        opacity: 1;
       }
-      .critical {
-        color: red;
-        animation: blink 1s infinite;
-      }
-      @keyframes blink {
-        0% {
-          opacity: 0;
-        }
-        100% {
-          opacity: 1;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Gas Detector</h1>
-    <p>Gas Level: <span id="gasLevel">Loading...</span> ppm</p>
-    <p>Status: <span id="gasStatus">Loading...</span></p>
-    <script>
-      function updateStatus() {
-        fetch('/update')
-          .then((response) => response.json())
-          .then((data) => {
-            document.getElementById('gasLevel').innerText = data.gasLevel;
-            const statusElem = document.getElementById('gasStatus');
-            statusElem.innerText = data.gasStatus;
-            if (data.gasStatus === 'BAHAYA') {
-              statusElem.classList.add('critical');
-            } else {
-              statusElem.classList.remove('critical');
-            }
-          });
-      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Gas Detector</h1>
+  <p>Gas Level: <span id="gasLevel">Loading...</span> ppm</p>
+  <p>Status: <span id="gasStatus">Loading...</span></p>
+  <script>
+    const broker = "broker.hivemq.com";
+    const port = 8000;
+    const topic = "gas/detector/status";
 
-      setInterval(updateStatus, 1000);
-    </script>
-  </body>
+    const clientID = "client-" + Math.random().toString(16).substr(2, 8);
+    const client = new Paho.MQTT.Client(broker, port, clientID);
+
+    client.onConnectionLost = (responseObject) => {
+      console.log("Connection lost: " + responseObject.errorMessage);
+    };
+
+    client.onMessageArrived = (message) => {
+      const data = JSON.parse(message.payloadString);
+      document.getElementById("gasLevel").innerText = data.gasLevel;
+      const statusElem = document.getElementById("gasStatus");
+      statusElem.innerText = data.gasStatus;
+
+      if (data.gasStatus === "BAHAYA") {
+        statusElem.classList.add("critical");
+      } else {
+        statusElem.classList.remove("critical");
+      }
+    };
+
+    client.connect({
+      onSuccess: () => {
+        console.log("Connected to MQTT broker");
+        client.subscribe(topic);
+      },
+    });
+  </script>
+</body>
 </html>
