@@ -92,8 +92,8 @@
         } else if (data.gasStatus === "WASPADA") {
           gasStatusElement.style.color = "orange";
           gasStatusElement.classList.remove("piska");
-          buzzerActive = false; // Nonaktifkan buzzer
-          document.getElementById("offButton").disabled = true; // Nonaktifkan tombol
+          buzzerActive = true; // Aktifkan buzzer
+          document.getElementById("offButton").disabled = false; // Aktifkan tombol
         } else {
           gasStatusElement.style.color = "green";
           gasStatusElement.classList.remove("piska");
