@@ -63,13 +63,13 @@
     let client;
     let lastMessageTime = 0; // Untuk debounce pesan
     const broker = "broker.hivemq.com"; // Alamat broker MQTT
-    const port = 9001; // Port WebSocket broker MQTT
-    const topic = "saoluis_uema_gassensor_33"; // Topik yang digunakan ESP32
+    const port = 443; // Port WebSocket aman
+    const clientID = "client-" + Math.random().toString(16).substr(2, 8);
+    const topic = "saoluis_uema_gassensor_33"; // Topik yang digunakan
 
     function startConnect() {
       console.log("Memulai koneksi ke broker MQTT...");
-      const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-
+      
       client = new Paho.MQTT.Client(broker, port, clientID);
 
       // Callback ketika koneksi hilang
@@ -83,6 +83,7 @@
           console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
         },
+        useSSL: true // Mengaktifkan koneksi aman (wss://)
       });
     }
 
