@@ -62,37 +62,43 @@
   <script>
     let client;
     let lastMessageTime = 0; // Untuk debounce pesan
+    const broker = "broker.hivemq.com"; // Alamat broker MQTT
+    const port = 9001; // Port WebSocket broker MQTT
+    const topic = "saoluis_uema_gassensor_33"; // Topik yang digunakan ESP32
 
     function startConnect() {
+      console.log("Memulai koneksi ke broker MQTT...");
       const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-      const broker = "broker.hivemq.com";
-      const port = 8000;
 
       client = new Paho.MQTT.Client(broker, port, clientID);
 
+      // Callback ketika koneksi hilang
       client.onConnectionLost = onConnectionLost;
+      // Callback ketika pesan diterima
       client.onMessageArrived = onMessageArrived;
 
       client.connect({
         onSuccess: onConnect,
         onFailure: (error) => {
+          console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
         },
       });
     }
 
     function onConnect() {
-      const topic = "saoluis_uema_gassensor_33";
+      console.log("Berhasil terhubung ke broker MQTT.");
       document.getElementById("connect").disabled = true;
       document.getElementById("connectionStatus").innerHTML = "Terhubung";
       document.getElementById("error").innerHTML = "";
 
+      // Berlangganan ke topik
       client.subscribe(topic, {
         onSuccess: () => {
           console.log("Berhasil berlangganan ke topik: " + topic);
         },
         onFailure: (error) => {
-          console.error("Gagal berlangganan: ", error);
+          console.error("Gagal berlangganan ke topik: ", error);
           document.getElementById("error").innerHTML = "Gagal berlangganan ke topik.";
         },
       });
@@ -104,7 +110,9 @@
       if (responseObject.errorCode !== 0) {
         console.error("Koneksi terputus: " + responseObject.errorMessage);
         document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
-        setTimeout(startConnect, 5000); // Coba hubungkan kembali setelah 5 detik
+
+        // Coba sambungkan ulang setelah 5 detik
+        setTimeout(startConnect, 5000);
       }
     }
 
