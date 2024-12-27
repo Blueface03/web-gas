@@ -35,7 +35,6 @@
     let buzzerActive = false; // Status buzzer
 
     function startConnect() {
-      console.log("Memulai koneksi ke broker MQTT...");
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
 
       client.onConnectionLost = onConnectionLost;
@@ -44,73 +43,43 @@
       client.connect({
         onSuccess: onConnect,
         onFailure: (error) => {
-          console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
-          setTimeout(startConnect, reconnectTimeout); // Coba sambungkan ulang
+          setTimeout(startConnect, reconnectTimeout);
         },
-        useSSL: true // Gunakan SSL untuk protokol wss://
+        useSSL: true
       });
     }
 
     function onConnect() {
-      console.log("Berhasil terhubung ke broker MQTT.");
       document.getElementById("connect").disabled = true;
       document.getElementById("connectionStatus").innerHTML = "Terhubung";
-      document.getElementById("error").innerHTML = ""; // Hapus error jika ada
-      client.subscribe(topic, {
-        onSuccess: () => console.log("Berhasil berlangganan ke topik: " + topic),
-        onFailure: (error) => {
-          console.error("Gagal berlangganan: ", error);
-          document.getElementById("error").innerHTML = "Gagal berlangganan ke topik.";
-        }
-      });
+      client.subscribe(topic);
     }
 
     function onConnectionLost(responseObject) {
       document.getElementById("connect").disabled = false;
       document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
-      if (responseObject.errorCode !== 0) {
-        console.error("Koneksi terputus: " + responseObject.errorMessage);
-        document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
-        setTimeout(startConnect, reconnectTimeout); // Coba sambungkan ulang setelah timeout
-      }
+      setTimeout(startConnect, reconnectTimeout);
     }
 
     function onMessageArrived(message) {
-      console.log("Pesan diterima: " + message.payloadString);
-      try {
-        const data = JSON.parse(message.payloadString);
-        document.getElementById("gasLevel").innerHTML = (data.gasLevel || 0) + " %";
-        const gasStatusElement = document.getElementById("gasStatus");
-        gasStatusElement.innerHTML = data.gasStatus || "AMAN";
+      const data = JSON.parse(message.payloadString);
+      document.getElementById("gasLevel").innerHTML = (data.gasLevel || 0) + " %";
+      const gasStatusElement = document.getElementById("gasStatus");
+      gasStatusElement.innerHTML = data.gasStatus || "AMAN";
 
-        if (data.gasStatus === "BAHAYA") {
-          gasStatusElement.style.color = "red";
-          gasStatusElement.classList.add("piska");
-          buzzerActive = true; // Aktifkan buzzer
-          document.getElementById("offButton").disabled = false; // Aktifkan tombol Matikan Buzzer
-        } else if (data.gasStatus === "WASPADA") {
-          gasStatusElement.style.color = "orange";
-          gasStatusElement.classList.remove("piska");
-          buzzerActive = true; // Aktifkan buzzer
-          document.getElementById("offButton").disabled = false; // Aktifkan tombol
-        } else {
-          gasStatusElement.style.color = "green";
-          gasStatusElement.classList.remove("piska");
-          buzzerActive = false; // Nonaktifkan buzzer
-          document.getElementById("offButton").disabled = true; // Nonaktifkan tombol
-        }
-      } catch (error) {
-        console.error("Gagal memproses pesan: ", error);
-        document.getElementById("error").innerHTML = "Terjadi kesalahan saat memproses pesan.";
+      if (data.gasStatus === "BAHAYA" || data.gasStatus === "WASPADA") {
+        buzzerActive = true;
+        document.getElementById("offButton").disabled = false;
+      } else {
+        buzzerActive = false;
+        document.getElementById("offButton").disabled = true;
       }
     }
 
     function turnOffBuzzer() {
-      console.log("Buzzer dimatikan secara manual.");
-      buzzerActive = false; // Nonaktifkan buzzer
-      document.getElementById("offButton").disabled = true; // Nonaktifkan tombol setelah buzzer dimatikan
-      // Kirim pesan MQTT untuk mematikan buzzer ke perangkat
+      buzzerActive = false;
+      document.getElementById("offButton").disabled = true;
       const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
       client.publish(topic, offMessage);
     }
