@@ -29,14 +29,13 @@
   <script>
     let client;
     const broker = "broker.hivemq.com"; // Alamat broker MQTT
-    const port = 8000; // Gunakan 8000 untuk WebSocket tanpa SSL atau 443 untuk SSL
-    const protocol = "ws"; // Gunakan "ws" atau "wss" sesuai kebutuhan
+    const port = 443; // Port WebSocket aman
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
     const topic = "saoluis_uema_gassensor_33"; // Topik MQTT
 
     function startConnect() {
       console.log("Memulai koneksi ke broker MQTT...");
-      client = new Paho.MQTT.Client(broker, port, protocol + "://" + broker + "/mqtt");
+      client = new Paho.MQTT.Client(broker, port, "/mqtt");
 
       client.onConnectionLost = onConnectionLost;
       client.onMessageArrived = onMessageArrived;
@@ -47,7 +46,7 @@
           console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
         },
-        useSSL: protocol === "wss" // Gunakan SSL jika "wss"
+        useSSL: true // Gunakan SSL untuk protokol wss://
       });
     }
 
