@@ -1,110 +1,57 @@
-<head>
-  <meta charset="utf-8" />
-  <title>Detector de vazamento de gás</title>
-  <script
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Gas Detector</title>
+    <script>
     src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"
     type="text/javascript"
-  ></script>
-  <style>
-    input {
-      cursor: pointer;
-    }
-    .wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h1 {
-      text-align: center;
-    }
-    #mensagens {
-      font-weight: bold;
-      font-size: 2rem;
-    }
-    #situation {
-      color: rgb(2, 211, 2);
-    }
-    .pisca {
-      color: red !important;
-      animation: pisca 1s ease infinite;
-    }
-    @keyframes pisca {
-      0% {
-        opacity: 0;
+  </script>
+    <style>
+      html {
+        font-family: Helvetica;
+        text-align: center;
+      }
+      #gasStatus {
+        font-size: 2rem;
+        font-weight: bold;
+        color: green;
+      }
+      .critical {
+        color: red;
+        animation: blink 1s infinite;
+      }
+      @keyframes blink {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gas Detector</h1>
+    <p>Gas Level: <span id="gasLevel">Loading...</span> ppm</p>
+    <p>Status: <span id="gasStatus">Loading...</span></p>
+    <script>
+      function updateStatus() {
+        fetch('/update')
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById('gasLevel').innerText = data.gasLevel;
+            const statusElem = document.getElementById('gasStatus');
+            statusElem.innerText = data.gasStatus;
+            if (data.gasStatus === 'BAHAYA') {
+              statusElem.classList.add('critical');
+            } else {
+              statusElem.classList.remove('critical');
+            }
+          });
       }
 
-      100% {
-        opacity: 1;
-      }
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrapper">
-    <h1 id="Main_heading">
-      <b>Informações sobre a concentração de gás atual</b>
-      <p id="error"></p>
-    </h1>
-    <br /><br />
-    <form id="connection-information-form">
-      <input
-        id="connect"
-        type="button"
-        onclick="startConnect()"
-        value="Conectar ao dispositivo"
-      />
-    </form>
-    <div id="messages"></div>
-    <div id="mensagens">
-      <p>Valor: <span id="valor">0</span>ppm</p>
-    </div>
-    <h2 id="situation">Situação Normal</h2>
-  </div>
-</body>
-
-<script>
-  function startConnect() {
-    clientID = "clientID - " + parseInt(Math.random() * 100);
-    host = "broker.hivemq.com";
-    port = "8000";
-
-    client = new Paho.MQTT.Client(host, Number(port), clientID);
-    client.onConnectionLost = onConnectionLost;
-    client.onMessageArrived = onMessageArrived;
-    client.connect({
-      onSuccess: onConnect,
-    });
-  }
-
-  function onConnect() {
-    topic = "saoluis_uema_gassensor_33";
-    document.getElementById("connect").disabled = true;
-
-    document.getElementById("error").innerHTML = "";
-    client.subscribe(topic);
-  }
-  function onConnectionLost(responseObject) {
-    document.getElementById("connect").disabled = false;
-
-    document.getElementById("error").innerHTML =
-      "Ocorreu um problema ao tentar conectar";
-  }
-  function onMessageArrived(message) {
-    console.log("OnMessageArrived: " + message.payloadString);
-    const valor = Number(message.payloadString.toString());
-
-    const element = document.getElementById("situation");
-
-    if (valor > 1200) {
-      element.classList.add("pisca");
-
-      element.innerHTML = "Situação Crítica";
-    } else {
-      element.classList.remove("pisca");
-      element.innerHTML = "Situação Normal";
-    }
-
-    document.getElementById("valor").innerHTML = valor;
-  }
-</script>
+      setInterval(updateStatus, 1000);
+    </script>
+  </body>
+</html>
