@@ -27,12 +27,10 @@
 
   <script>
     let client;
-    const broker = "broker.hivemq.com"; // Alamat broker MQTT
-    const port = 8884; // Port untuk WebSocket aman (WSS)
+    const broker = "broker.hivemq.com";
+    const port = 8884;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const topic = "saoluis_uema_gassensor_33"; // Topik MQTT
-    let reconnectTimeout = 5000; // Waktu tunggu untuk reconnect (5 detik)
-    let buzzerActive = false; // Status buzzer
+    const topic = "saoluis_uema_gassensor_33";
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
@@ -44,7 +42,6 @@
         onSuccess: onConnect,
         onFailure: (error) => {
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
-          setTimeout(startConnect, reconnectTimeout);
         },
         useSSL: true
       });
@@ -59,36 +56,25 @@
     function onConnectionLost(responseObject) {
       document.getElementById("connect").disabled = false;
       document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
-      setTimeout(startConnect, reconnectTimeout);
     }
 
     function onMessageArrived(message) {
       const data = JSON.parse(message.payloadString);
-      document.getElementById("gasLevel").innerHTML = data.gasLevel + " %"; // Hanya tambahkan % jika tidak ada dalam data
+      document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
       const gasStatusElement = document.getElementById("gasStatus");
       gasStatusElement.innerHTML = data.gasStatus || "AMAN";
 
       if (data.gasStatus === "BAHAYA" || data.gasStatus === "WASPADA") {
-        buzzerActive = true;
         document.getElementById("offButton").disabled = false;
       } else {
-        buzzerActive = false;
         document.getElementById("offButton").disabled = true;
       }
     }
 
     function turnOffBuzzer() {
-      if (!client.isConnected()) {
-        console.error("MQTT tidak terhubung.");
-        document.getElementById("error").innerHTML = "MQTT tidak terhubung. Tidak dapat mengirim pesan.";
-        return;
-      }
-
-      buzzerActive = false;
-      document.getElementById("offButton").disabled = true;
       const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
-      client.publish(topic, offMessage); // Kirim pesan untuk mematikan buzzer
-      console.log("Pesan untuk mematikan buzzer dikirim.");
+      client.send(topic, offMessage, 0, false);
+      document.getElementById("offButton").disabled = true;
     }
   </script>
 </body>
