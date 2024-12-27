@@ -11,9 +11,9 @@
     .piska { color: red; animation: blink 1s infinite; }
     @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
     #error { color: red; margin-top: 10px; }
-    button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
     button:disabled { background-color: #c0c0c0; cursor: not-allowed; }
-    #loading { font-size: 1.2rem; color: gray; }
+    #offButton { background-color: red; color: white; }
   </style>
 </head>
 <body>
@@ -21,9 +21,8 @@
   <p>Status Koneksi: <span id="connectionStatus">Tidak terhubung</span></p>
   <p>Gas Level: <span id="gasLevel">Loading...</span> %</p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
-  <p id="loading">Menunggu data...</p>
-  <p>Terakhir diperbarui: <span id="lastUpdate">Tidak tersedia</span></p>
   <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
+  <button id="offButton" onclick="turnOffBuzzer()" disabled>Matikan Buzzer</button>
   <p id="error"></p>
 
   <script>
@@ -32,6 +31,8 @@
     const port = 8884; // Port untuk WebSocket aman (WSS)
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
     const topic = "saoluis_uema_gassensor_33"; // Topik MQTT
+    let reconnectTimeout = 5000; // Waktu tunggu untuk reconnect (5 detik)
+    let buzzerActive = false; // Status buzzer
 
     function startConnect() {
       console.log("Memulai koneksi ke broker MQTT...");
@@ -45,6 +46,7 @@
         onFailure: (error) => {
           console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
+          setTimeout(startConnect, reconnectTimeout); // Coba sambungkan ulang
         },
         useSSL: true // Gunakan SSL untuk protokol wss://
       });
@@ -54,9 +56,13 @@
       console.log("Berhasil terhubung ke broker MQTT.");
       document.getElementById("connect").disabled = true;
       document.getElementById("connectionStatus").innerHTML = "Terhubung";
+      document.getElementById("error").innerHTML = ""; // Hapus error jika ada
       client.subscribe(topic, {
         onSuccess: () => console.log("Berhasil berlangganan ke topik: " + topic),
-        onFailure: (error) => console.error("Gagal berlangganan: ", error)
+        onFailure: (error) => {
+          console.error("Gagal berlangganan: ", error);
+          document.getElementById("error").innerHTML = "Gagal berlangganan ke topik.";
+        }
       });
     }
 
@@ -66,7 +72,7 @@
       if (responseObject.errorCode !== 0) {
         console.error("Koneksi terputus: " + responseObject.errorMessage);
         document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
-        setTimeout(startConnect, 5000); // Coba sambungkan ulang setelah 5 detik
+        setTimeout(startConnect, reconnectTimeout); // Coba sambungkan ulang setelah timeout
       }
     }
 
@@ -74,12 +80,39 @@
       console.log("Pesan diterima: " + message.payloadString);
       try {
         const data = JSON.parse(message.payloadString);
-        document.getElementById("gasLevel").innerHTML = data.gasLevel || 0 + " %";
-        document.getElementById("gasStatus").innerHTML = data.gasStatus || "AMAN";
+        document.getElementById("gasLevel").innerHTML = (data.gasLevel || 0) + " %";
+        const gasStatusElement = document.getElementById("gasStatus");
+        gasStatusElement.innerHTML = data.gasStatus || "AMAN";
+
+        if (data.gasStatus === "BAHAYA") {
+          gasStatusElement.style.color = "red";
+          gasStatusElement.classList.add("piska");
+          buzzerActive = true; // Aktifkan buzzer
+          document.getElementById("offButton").disabled = false; // Aktifkan tombol Matikan Buzzer
+        } else if (data.gasStatus === "WASPADA") {
+          gasStatusElement.style.color = "orange";
+          gasStatusElement.classList.remove("piska");
+          buzzerActive = false; // Nonaktifkan buzzer
+          document.getElementById("offButton").disabled = true; // Nonaktifkan tombol
+        } else {
+          gasStatusElement.style.color = "green";
+          gasStatusElement.classList.remove("piska");
+          buzzerActive = false; // Nonaktifkan buzzer
+          document.getElementById("offButton").disabled = true; // Nonaktifkan tombol
+        }
       } catch (error) {
         console.error("Gagal memproses pesan: ", error);
         document.getElementById("error").innerHTML = "Terjadi kesalahan saat memproses pesan.";
       }
+    }
+
+    function turnOffBuzzer() {
+      console.log("Buzzer dimatikan secara manual.");
+      buzzerActive = false; // Nonaktifkan buzzer
+      document.getElementById("offButton").disabled = true; // Nonaktifkan tombol setelah buzzer dimatikan
+      // Kirim pesan MQTT untuk mematikan buzzer ke perangkat
+      const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
+      client.publish(topic, offMessage);
     }
   </script>
 </body>
