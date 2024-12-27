@@ -6,47 +6,14 @@
   <title>Gas Detector</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
   <style>
-    html {
-      font-family: Helvetica;
-      text-align: center;
-    }
-    #gasStatus {
-      font-size: 2rem;
-      font-weight: bold;
-      color: green;
-    }
-    .piska {
-      color: red;
-      animation: blink 1s infinite;
-    }
-    @keyframes blink {
-      0% {
-        opacity: 0;
-      }
-      100% {
-        opacity: 1;
-      }
-    }
-    #error {
-      color: red;
-      margin-top: 10px;
-    }
-    button {
-      padding: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #c0c0c0;
-      cursor: not-allowed;
-    }
-    #loading {
-      font-size: 1.2rem;
-      color: gray;
-    }
+    html { font-family: Helvetica; text-align: center; }
+    #gasStatus { font-size: 2rem; font-weight: bold; color: green; }
+    .piska { color: red; animation: blink 1s infinite; }
+    @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
+    #error { color: red; margin-top: 10px; }
+    button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:disabled { background-color: #c0c0c0; cursor: not-allowed; }
+    #loading { font-size: 1.2rem; color: gray; }
   </style>
 </head>
 <body>
@@ -61,20 +28,17 @@
 
   <script>
     let client;
-    let lastMessageTime = 0; // Untuk debounce pesan
     const broker = "broker.hivemq.com"; // Alamat broker MQTT
-    const port = 443; // Port WebSocket aman
+    const port = 8000; // Gunakan 8000 untuk WebSocket tanpa SSL atau 443 untuk SSL
+    const protocol = "ws"; // Gunakan "ws" atau "wss" sesuai kebutuhan
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const topic = "saoluis_uema_gassensor_33"; // Topik yang digunakan
+    const topic = "saoluis_uema_gassensor_33"; // Topik MQTT
 
     function startConnect() {
       console.log("Memulai koneksi ke broker MQTT...");
-      
-      client = new Paho.MQTT.Client(broker, port, clientID);
+      client = new Paho.MQTT.Client(broker, port, protocol + "://" + broker + "/mqtt");
 
-      // Callback ketika koneksi hilang
       client.onConnectionLost = onConnectionLost;
-      // Callback ketika pesan diterima
       client.onMessageArrived = onMessageArrived;
 
       client.connect({
@@ -83,7 +47,7 @@
           console.error("Gagal terhubung ke broker MQTT: ", error.errorMessage);
           document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
         },
-        useSSL: true // Mengaktifkan koneksi aman (wss://)
+        useSSL: protocol === "wss" // Gunakan SSL jika "wss"
       });
     }
 
@@ -91,17 +55,9 @@
       console.log("Berhasil terhubung ke broker MQTT.");
       document.getElementById("connect").disabled = true;
       document.getElementById("connectionStatus").innerHTML = "Terhubung";
-      document.getElementById("error").innerHTML = "";
-
-      // Berlangganan ke topik
       client.subscribe(topic, {
-        onSuccess: () => {
-          console.log("Berhasil berlangganan ke topik: " + topic);
-        },
-        onFailure: (error) => {
-          console.error("Gagal berlangganan ke topik: ", error);
-          document.getElementById("error").innerHTML = "Gagal berlangganan ke topik.";
-        },
+        onSuccess: () => console.log("Berhasil berlangganan ke topik: " + topic),
+        onFailure: (error) => console.error("Gagal berlangganan: ", error)
       });
     }
 
@@ -111,39 +67,16 @@
       if (responseObject.errorCode !== 0) {
         console.error("Koneksi terputus: " + responseObject.errorMessage);
         document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
-
-        // Coba sambungkan ulang setelah 5 detik
-        setTimeout(startConnect, 5000);
+        setTimeout(startConnect, 5000); // Coba sambungkan ulang setelah 5 detik
       }
     }
 
     function onMessageArrived(message) {
-      const now = Date.now();
-      if (now - lastMessageTime < 1000) return; // Abaikan pesan jika kurang dari 1 detik
-      lastMessageTime = now;
-
       console.log("Pesan diterima: " + message.payloadString);
-
       try {
-        document.getElementById("loading").style.display = "none"; // Sembunyikan loading
         const data = JSON.parse(message.payloadString);
-        const gasLevel = data.gasLevel || 0;
-        const gasStatus = data.gasStatus || "AMAN";
-
-        document.getElementById("gasLevel").innerHTML = gasLevel + " %";
-        const statusElement = document.getElementById("gasStatus");
-        statusElement.innerHTML = gasStatus;
-
-        // Perbarui waktu terakhir diperbarui
-        const currentTime = new Date().toLocaleTimeString();
-        document.getElementById("lastUpdate").innerHTML = currentTime;
-
-        // Tambahkan efek berkedip jika status "BAHAYA"
-        if (gasStatus === "BAHAYA") {
-          statusElement.classList.add("piska");
-        } else {
-          statusElement.classList.remove("piska");
-        }
+        document.getElementById("gasLevel").innerHTML = data.gasLevel || 0 + " %";
+        document.getElementById("gasStatus").innerHTML = data.gasStatus || "AMAN";
       } catch (error) {
         console.error("Gagal memproses pesan: ", error);
         document.getElementById("error").innerHTML = "Terjadi kesalahan saat memproses pesan.";
