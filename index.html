@@ -43,17 +43,25 @@
       background-color: #c0c0c0;
       cursor: not-allowed;
     }
+    #loading {
+      font-size: 1.2rem;
+      color: gray;
+    }
   </style>
 </head>
 <body>
   <h1>Gas Detector</h1>
+  <p>Status Koneksi: <span id="connectionStatus">Tidak terhubung</span></p>
   <p>Gas Level: <span id="gasLevel">Loading...</span> %</p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
+  <p id="loading">Menunggu data...</p>
+  <p>Terakhir diperbarui: <span id="lastUpdate">Tidak tersedia</span></p>
   <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
   <p id="error"></p>
 
   <script>
     let client;
+    let lastMessageTime = 0; // Untuk debounce pesan
 
     function startConnect() {
       const clientID = "client-" + Math.random().toString(16).substr(2, 8);
@@ -76,6 +84,7 @@
     function onConnect() {
       const topic = "saoluis_uema_gassensor_33";
       document.getElementById("connect").disabled = true;
+      document.getElementById("connectionStatus").innerHTML = "Terhubung";
       document.getElementById("error").innerHTML = "";
 
       client.subscribe(topic, {
@@ -91,16 +100,23 @@
 
     function onConnectionLost(responseObject) {
       document.getElementById("connect").disabled = false;
+      document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
       if (responseObject.errorCode !== 0) {
         console.error("Koneksi terputus: " + responseObject.errorMessage);
         document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
+        setTimeout(startConnect, 5000); // Coba hubungkan kembali setelah 5 detik
       }
     }
 
     function onMessageArrived(message) {
+      const now = Date.now();
+      if (now - lastMessageTime < 1000) return; // Abaikan pesan jika kurang dari 1 detik
+      lastMessageTime = now;
+
       console.log("Pesan diterima: " + message.payloadString);
 
       try {
+        document.getElementById("loading").style.display = "none"; // Sembunyikan loading
         const data = JSON.parse(message.payloadString);
         const gasLevel = data.gasLevel || 0;
         const gasStatus = data.gasStatus || "AMAN";
@@ -109,6 +125,11 @@
         const statusElement = document.getElementById("gasStatus");
         statusElement.innerHTML = gasStatus;
 
+        // Perbarui waktu terakhir diperbarui
+        const currentTime = new Date().toLocaleTimeString();
+        document.getElementById("lastUpdate").innerHTML = currentTime;
+
+        // Tambahkan efek berkedip jika status "BAHAYA"
         if (gasStatus === "BAHAYA") {
           statusElement.classList.add("piska");
         } else {
