@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +15,7 @@
       font-weight: bold;
       color: green;
     }
-    .critical {
+    .piska {
       color: red;
       animation: blink 1s infinite;
     }
@@ -27,43 +27,98 @@
         opacity: 1;
       }
     }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #c0c0c0;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
   <h1>Gas Detector</h1>
-  <p>Gas Level: <span id="gasLevel">Loading...</span> ppm</p>
+  <p>Gas Level: <span id="gasLevel">Loading...</span> %</p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
+  <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
+  <p id="error"></p>
+
   <script>
-    const broker = "broker.hivemq.com";
-    const port = 8000;
-    const topic = "gas/detector/status";
+    let client;
 
-    const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const client = new Paho.MQTT.Client(broker, port, clientID);
+    function startConnect() {
+      const clientID = "client-" + Math.random().toString(16).substr(2, 8);
+      const broker = "broker.hivemq.com";
+      const port = 8000;
 
-    client.onConnectionLost = (responseObject) => {
-      console.log("Connection lost: " + responseObject.errorMessage);
-    };
+      client = new Paho.MQTT.Client(broker, port, clientID);
 
-    client.onMessageArrived = (message) => {
-      const data = JSON.parse(message.payloadString);
-      document.getElementById("gasLevel").innerText = data.gasLevel;
-      const statusElem = document.getElementById("gasStatus");
-      statusElem.innerText = data.gasStatus;
+      client.onConnectionLost = onConnectionLost;
+      client.onMessageArrived = onMessageArrived;
 
-      if (data.gasStatus === "BAHAYA") {
-        statusElem.classList.add("critical");
-      } else {
-        statusElem.classList.remove("critical");
+      client.connect({
+        onSuccess: onConnect,
+        onFailure: (error) => {
+          document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
+        },
+      });
+    }
+
+    function onConnect() {
+      const topic = "saoluis_uema_gassensor_33";
+      document.getElementById("connect").disabled = true;
+      document.getElementById("error").innerHTML = "";
+
+      client.subscribe(topic, {
+        onSuccess: () => {
+          console.log("Berhasil berlangganan ke topik: " + topic);
+        },
+        onFailure: (error) => {
+          console.error("Gagal berlangganan: ", error);
+          document.getElementById("error").innerHTML = "Gagal berlangganan ke topik.";
+        },
+      });
+    }
+
+    function onConnectionLost(responseObject) {
+      document.getElementById("connect").disabled = false;
+      if (responseObject.errorCode !== 0) {
+        console.error("Koneksi terputus: " + responseObject.errorMessage);
+        document.getElementById("error").innerHTML = "Koneksi terputus: " + responseObject.errorMessage;
       }
-    };
+    }
 
-    client.connect({
-      onSuccess: () => {
-        console.log("Connected to MQTT broker");
-        client.subscribe(topic);
-      },
-    });
+    function onMessageArrived(message) {
+      console.log("Pesan diterima: " + message.payloadString);
+
+      try {
+        const data = JSON.parse(message.payloadString);
+        const gasLevel = data.gasLevel || 0;
+        const gasStatus = data.gasStatus || "AMAN";
+
+        document.getElementById("gasLevel").innerHTML = gasLevel + " %";
+        const statusElement = document.getElementById("gasStatus");
+        statusElement.innerHTML = gasStatus;
+
+        if (gasStatus === "BAHAYA") {
+          statusElement.classList.add("piska");
+        } else {
+          statusElement.classList.remove("piska");
+        }
+      } catch (error) {
+        console.error("Gagal memproses pesan: ", error);
+        document.getElementById("error").innerHTML = "Terjadi kesalahan saat memproses pesan.";
+      }
+    }
   </script>
 </body>
 </html>
