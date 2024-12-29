@@ -68,9 +68,9 @@
   <script>
     let client;
     const broker = "broker.hivemq.com";
-    const port = 8883;
+    const port = 8884;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const topic = "#"; // Dapat menerima pesan dari semua device
+    const topic = "saoluis_uema_gassensor_33";
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
