@@ -48,11 +48,7 @@
       background-color: #007bff;
       color: white;
     }
-    #offButton {
-      background-color: red;
-      color: white;
-    }
-    #connect:disabled, #offButton:disabled {
+    #connect:disabled {
       background-color: #cccccc;
       cursor: not-allowed;
     }
@@ -66,16 +62,15 @@
     <p>Status: <span id="gasStatus">Loading...</span></p>
   </div>
   <div style="margin: 20px;">
-    <button id="offButton" onclick="turnOffBuzzer()" disabled>Matikan Buzzer</button>
     <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
   </div>
 
   <script>
     let client;
     const broker = "broker.hivemq.com";
-    const port = 8884;
+    const port = 8883;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const topic = "saoluis_uema_gassensor_33";
+    const topic = "#"; // Dapat menerima pesan dari semua device
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
@@ -111,15 +106,12 @@
       if (data.gasStatus === "BAHAYA") {
         gasStatusElement.innerHTML = "BAHAYA";
         gasStatusElement.style.color = "red";
-        document.getElementById("offButton").disabled = false;
       } else if (data.gasStatus === "WASPADA") {
         gasStatusElement.innerHTML = "WASPADA";
         gasStatusElement.style.color = "orange";
-        document.getElementById("offButton").disabled = false;
       } else {
         gasStatusElement.innerHTML = "AMAN";
         gasStatusElement.style.color = "green";
-        document.getElementById("offButton").disabled = true;
       }
     }
   </script>
