@@ -11,30 +11,25 @@
       text-align: center;
       margin: 0;
       padding: 0;
-      background-color: #e6f7ff;
+      background-color: #f0f8ff;
     }
     h1 {
-      background-color: #007bff;
-      color: white;
-      margin: 0;
-      padding: 20px 0;
-    }
-    .status-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       background-color: #004080;
       color: white;
-      padding: 20px 0;
       margin: 0;
+      padding: 20px 0;
+      font-size: 2rem;
+    }
+    .status-section {
+      padding: 20px;
+      background-color: #007bff;
+      color: white;
+      margin: 20px 0;
+      border-radius: 10px;
     }
     .status-section p {
       font-size: 1.5rem;
       margin: 10px 0;
-    }
-    .status-section span {
-      font-weight: bold;
     }
     button {
       padding: 10px 20px;
@@ -52,25 +47,43 @@
       background-color: #cccccc;
       cursor: not-allowed;
     }
+    #log {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      margin: 20px auto;
+      width: 90%;
+      background-color: #fff;
+      border-radius: 10px;
+    }
+    #log strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
   </style>
 </head>
 <body>
   <h1>Gas Detector</h1>
   <div class="status-section">
-    <p>Status Kondisi: <span id="connectionStatus">Tidak terhubung</span></p>
-    <p>Gas Level: <span id="gasLevel">Loading...</span></p>
-    <p>Status: <span id="gasStatus">Loading...</span></p>
+    <p>Status Koneksi: <span id="connectionStatus" class="status">Tidak terhubung</span></p>
+    <p>Gas Level: <span id="gasLevel" class="status">Loading...</span></p>
+    <p>Status: <span id="gasStatus" class="status">Loading...</span></p>
   </div>
-  <div style="margin: 20px;">
-    <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
+  <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
+  <p id="error" style="color: red; margin-top: 10px;"></p>
+  <div id="log">
+    <strong>Log Data Gas:</strong>
+    <ul id="logList"></ul>
   </div>
-
   <script>
     let client;
     const broker = "broker.hivemq.com";
     const port = 8884;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
-    const topic = "saoluis_uema_gassensor_33"; 
+    const topic = "saoluis_uema_gassensor_33";
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
@@ -81,7 +94,7 @@
       client.connect({
         onSuccess: onConnect,
         onFailure: (error) => {
-          document.getElementById("connectionStatus").innerHTML = "Gagal terhubung: " + error.errorMessage;
+          document.getElementById("error").innerHTML = "Gagal terhubung: " + error.errorMessage;
         },
         useSSL: true
       });
@@ -105,13 +118,26 @@
 
       if (data.gasStatus === "BAHAYA") {
         gasStatusElement.innerHTML = "BAHAYA";
-        gasStatusElement.style.color = "red";
+        gasStatusElement.className = "status bahaya";
       } else if (data.gasStatus === "WASPADA") {
         gasStatusElement.innerHTML = "WASPADA";
-        gasStatusElement.style.color = "orange";
+        gasStatusElement.className = "status waspada";
       } else {
         gasStatusElement.innerHTML = "AMAN";
-        gasStatusElement.style.color = "green";
+        gasStatusElement.className = "status aman";
+      }
+
+      addLog(data.gasLevel, data.gasStatus);
+    }
+
+    function addLog(level, status) {
+      const logList = document.getElementById("logList");
+      const logItem = document.createElement("li");
+      const timestamp = new Date().toLocaleTimeString();
+      logItem.textContent = `[${timestamp}] Level Gas: ${level}% - Status: ${status}`;
+      logList.appendChild(logItem);
+      if (logList.childNodes.length > 10) {
+        logList.removeChild(logList.firstChild);
       }
     }
   </script>
