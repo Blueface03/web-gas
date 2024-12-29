@@ -122,12 +122,6 @@
         document.getElementById("offButton").disabled = true;
       }
     }
-
-    function turnOffBuzzer() {
-      const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
-      client.send(topic, offMessage, 0, false);
-      document.getElementById("offButton").disabled = true;
-    }
   </script>
 </body>
 </html>
