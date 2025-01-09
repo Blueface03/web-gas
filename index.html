@@ -7,13 +7,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
   <style>
     html { font-family: Helvetica; text-align: center; }
-    #gasStatus { font-size: 2rem; font-weight: bold; color: green; }
-    .piska { color: red; animation: blink 1s infinite; }
-    @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
+    body { margin: 0; padding: 0; background-color: #f0f8ff; }
+    h1 { background-color: #007bff; color: white; padding: 10px; margin: 0; }
+    p { margin: 10px 0; font-size: 1.2rem; }
+    span { font-weight: bold; }
+    #connectionStatus { color: red; }
+    #gasLevel { color: blue; }
+    #gasStatus { font-size: 1.5rem; color: green; }
     #error { color: red; margin-top: 10px; }
-    button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+    button { padding: 10px; font-size: 1rem; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
     button:disabled { background-color: #c0c0c0; cursor: not-allowed; }
-    #offButton { background-color: red; color: white; }
   </style>
 </head>
 <body>
@@ -22,7 +25,6 @@
   <p>Gas Level: <span id="gasLevel">Loading...</span></p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
   <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
-  <button id="offButton" onclick="turnOffBuzzer()" disabled>Matikan Buzzer</button>
   <p id="error"></p>
 
   <script>
@@ -63,19 +65,7 @@
       document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
       const gasStatusElement = document.getElementById("gasStatus");
       gasStatusElement.innerHTML = data.gasStatus || "AMAN";
-
-      if (data.gasStatus === "BAHAYA" || data.gasStatus === "WASPADA") {
-        document.getElementById("offButton").disabled = false;
-      } else {
-        document.getElementById("offButton").disabled = true;
-      }
-    }
-
-    function turnOffBuzzer() {
-      const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
-      client.send(topic, offMessage, 0, false);
-      document.getElementById("offButton").disabled = true;
     }
   </script>
 </body>
-</html> 
+</html>
