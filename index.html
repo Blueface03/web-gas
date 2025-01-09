@@ -33,6 +33,7 @@
     const port = 8884;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
     const topic = "saoluis_uema_gassensor_33";
+    let lastUpdateTime = Date.now(); // Waktu terakhir data diterima
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
@@ -56,16 +57,42 @@
     }
 
     function onConnectionLost(responseObject) {
-      document.getElementById("connect").disabled = false;
-      document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
+      if (responseObject.errorCode !== 0) {
+        console.log("Koneksi terputus: " + responseObject.errorMessage);
+        document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
+        document.getElementById("connect").disabled = false;
+
+        // Coba sambungkan kembali
+        setTimeout(() => {
+          startConnect();
+        }, 3000); // Tunggu 3 detik sebelum reconnect
+      }
     }
 
     function onMessageArrived(message) {
-      const data = JSON.parse(message.payloadString);
-      document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
-      const gasStatusElement = document.getElementById("gasStatus");
-      gasStatusElement.innerHTML = data.gasStatus || "AMAN";
+      try {
+        lastUpdateTime = Date.now(); // Perbarui waktu terakhir data diterima
+        const data = JSON.parse(message.payloadString);
+        document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
+        const gasStatusElement = document.getElementById("gasStatus");
+        gasStatusElement.innerHTML = data.gasStatus || "AMAN";
+      } catch (error) {
+        console.error("Error parsing data:", error);
+        document.getElementById("error").innerHTML = "Data tidak valid!";
+      }
     }
+
+    // Periksa apakah data masih diterima dalam interval tertentu
+    setInterval(() => {
+      const now = Date.now();
+      if (now - lastUpdateTime > 5000) { // Jika lebih dari 5 detik tanpa data
+        document.getElementById("error").innerHTML = "Data tidak diterima!";
+        document.getElementById("gasLevel").innerHTML = "Tidak ada data";
+        document.getElementById("gasStatus").innerHTML = "Tidak ada data";
+      } else {
+        document.getElementById("error").innerHTML = ""; // Hapus pesan error jika data diterima
+      }
+    }, 1000);
   </script>
 </body>
 </html>
