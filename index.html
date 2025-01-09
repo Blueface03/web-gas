@@ -7,16 +7,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"></script>
   <style>
     html { font-family: Helvetica; text-align: center; }
-    body { margin: 0; padding: 0; background-color: #f0f8ff; }
-    h1 { background-color: #007bff; color: white; padding: 10px; margin: 0; }
-    p { margin: 10px 0; font-size: 1.2rem; }
-    span { font-weight: bold; }
-    #connectionStatus { color: red; }
-    #gasLevel { color: blue; }
-    #gasStatus { font-size: 1.5rem; color: green; }
+    #gasStatus { font-size: 2rem; font-weight: bold; color: green; }
+    .piska { color: red; animation: blink 1s infinite; }
+    @keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
     #error { color: red; margin-top: 10px; }
-    button { padding: 10px; font-size: 1rem; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+    button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
     button:disabled { background-color: #c0c0c0; cursor: not-allowed; }
+    #offButton { background-color: red; color: white; }
   </style>
 </head>
 <body>
@@ -25,6 +22,7 @@
   <p>Gas Level: <span id="gasLevel">Loading...</span></p>
   <p>Status: <span id="gasStatus">Loading...</span></p>
   <button id="connect" onclick="startConnect()">Hubungkan ke Perangkat</button>
+  <button id="offButton" onclick="turnOffBuzzer()" disabled>Matikan Buzzer</button>
   <p id="error"></p>
 
   <script>
@@ -33,7 +31,6 @@
     const port = 8884;
     const clientID = "client-" + Math.random().toString(16).substr(2, 8);
     const topic = "saoluis_uema_gassensor_33";
-    let lastUpdateTime = Date.now(); // Waktu terakhir data diterima
 
     function startConnect() {
       client = new Paho.MQTT.Client(broker, port, "/mqtt");
@@ -57,42 +54,28 @@
     }
 
     function onConnectionLost(responseObject) {
-      if (responseObject.errorCode !== 0) {
-        console.log("Koneksi terputus: " + responseObject.errorMessage);
-        document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
-        document.getElementById("connect").disabled = false;
-
-        // Coba sambungkan kembali
-        setTimeout(() => {
-          startConnect();
-        }, 3000); // Tunggu 3 detik sebelum reconnect
-      }
+      document.getElementById("connect").disabled = false;
+      document.getElementById("connectionStatus").innerHTML = "Tidak terhubung";
     }
 
     function onMessageArrived(message) {
-      try {
-        lastUpdateTime = Date.now(); // Perbarui waktu terakhir data diterima
-        const data = JSON.parse(message.payloadString);
-        document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
-        const gasStatusElement = document.getElementById("gasStatus");
-        gasStatusElement.innerHTML = data.gasStatus || "AMAN";
-      } catch (error) {
-        console.error("Error parsing data:", error);
-        document.getElementById("error").innerHTML = "Data tidak valid!";
+      const data = JSON.parse(message.payloadString);
+      document.getElementById("gasLevel").innerHTML = data.gasLevel + " %";
+      const gasStatusElement = document.getElementById("gasStatus");
+      gasStatusElement.innerHTML = data.gasStatus || "AMAN";
+
+      if (data.gasStatus === "BAHAYA" || data.gasStatus === "WASPADA") {
+        document.getElementById("offButton").disabled = false;
+      } else {
+        document.getElementById("offButton").disabled = true;
       }
     }
 
-    // Periksa apakah data masih diterima dalam interval tertentu
-    setInterval(() => {
-      const now = Date.now();
-      if (now - lastUpdateTime > 5000) { // Jika lebih dari 5 detik tanpa data
-        document.getElementById("error").innerHTML = "Data tidak diterima!";
-        document.getElementById("gasLevel").innerHTML = "Tidak ada data";
-        document.getElementById("gasStatus").innerHTML = "Tidak ada data";
-      } else {
-        document.getElementById("error").innerHTML = ""; // Hapus pesan error jika data diterima
-      }
-    }, 1000);
+    function turnOffBuzzer() {
+      const offMessage = JSON.stringify({ action: "OFF_BUZZER" });
+      client.send(topic, offMessage, 0, false);
+      document.getElementById("offButton").disabled = true;
+    }
   </script>
 </body>
-</html>
+</html> 
